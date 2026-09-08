@@ -1,0 +1,19 @@
+{
+  "name": "Baseline CourtLog",
+  "short_name": "CourtLog",
+  "description": "Log tennis training sessions, track balls hit, grade your mechanics, and watch your career progress.",
+  "id": "/",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1512",
+  "theme_color": "#0d1512",
+  "categories": ["sports", "health", "productivity"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

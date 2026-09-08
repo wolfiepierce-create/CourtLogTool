@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Log tennis training sessions, track balls hit, grade your mechanics, and watch your career progress.">
+<meta name="theme-color" content="#0f1a14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f6f2" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CourtLog">
+<title>Baseline CourtLog</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="appbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="14" fill="var(--ball)"/>
+      <path d="M9.3 9.3a10 10 0 0 1 0 13.4M22.7 9.3a10 10 0 0 0 0 13.4" fill="none" stroke="var(--ball-seam)" stroke-width="1.7" stroke-linecap="round"/>
+    </svg>
+    <div class="brand-text">
+      <span class="brand-name">Baseline CourtLog</span>
+      <span class="brand-sub">Tennis progress tracker</span>
+    </div>
+  </div>
+  <button id="themeBtn" class="icon-btn" type="button" aria-label="Change colour theme" title="Theme">
+    <span id="themeGlyph" aria-hidden="true"></span>
+  </button>
+</header>
+
+<main id="main">
+
+  <!-- ================= DASHBOARD ================= -->
+  <section id="view-dashboard" class="view" aria-labelledby="dash-h">
+    <h1 id="dash-h" class="view-title">Dashboard</h1>
+    <p class="view-sub" id="dashGreeting">Your court, your numbers.</p>
+
+    <div class="tiles">
+      <div class="tile">
+        <span class="tile-label">Sessions</span>
+        <span class="tile-value" id="tSessions">0</span>
+      </div>
+      <div class="tile">
+        <span class="tile-label">Balls hit</span>
+        <span class="tile-value" id="tBalls">0</span>
+      </div>
+      <div class="tile">
+        <span class="tile-label">Hours on court</span>
+        <span class="tile-value" id="tHours">0</span>
+      </div>
+      <div class="tile">
+        <span class="tile-label">Overall grade</span>
+        <span class="tile-value grade" id="tGrade">&mdash;</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary btn-xl" type="button" data-go="log">
+        <span class="btn-kicker">Start here</span>
+        Add Training Session
+      </button>
+      <button class="btn btn-ghost btn-xl" type="button" data-go="progress">
+        <span class="btn-kicker">Career view</span>
+        Total Progress
+      </button>
+    </div>
+
+    <section class="card" aria-labelledby="recent-h">
+      <h2 id="recent-h" class="card-title">Recent sessions</h2>
+      <ol class="mini-log" id="recentList"></ol>
+    </section>
+  </section>
+
+  <!-- ================= LOG SESSION ================= -->
+  <section id="view-log" class="view" aria-labelledby="log-h" hidden>
+    <h1 id="log-h" class="view-title">Training Session</h1>
+    <p class="view-sub">Log the work, then grade yourself honestly.</p>
+
+    <form id="sessionForm" novalidate>
+
+      <section class="card" aria-labelledby="work-h">
+        <h2 id="work-h" class="card-title">The work</h2>
+
+        <div class="field">
+          <label for="fDate">Date</label>
+          <input type="date" id="fDate" name="date" required>
+        </div>
+
+        <div class="field">
+          <label for="fMinutes">How long did you train? <span class="unit">minutes</span></label>
+          <input type="number" id="fMinutes" name="minutes" inputmode="numeric" min="1" max="900" step="1" placeholder="90" required>
+          <div class="chips" data-chips="fMinutes">
+            <button class="chip" type="button" data-set="30">30m</button>
+            <button class="chip" type="button" data-set="60">1h</button>
+            <button class="chip" type="button" data-set="90">1h 30m</button>
+            <button class="chip" type="button" data-set="120">2h</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="fBalls">Roughly how many balls did you hit?</label>
+          <input type="number" id="fBalls" name="balls" inputmode="numeric" min="0" max="20000" step="1" placeholder="400" required>
+          <div class="chips" data-chips="fBalls">
+            <button class="chip" type="button" data-add="50">+50</button>
+            <button class="chip" type="button" data-add="100">+100</button>
+            <button class="chip" type="button" data-add="250">+250</button>
+            <button class="chip" type="button" data-add="500">+500</button>
+            <button class="chip chip-clear" type="button" data-add="clear">Clear</button>
+          </div>
+          <p class="hint">An estimate is fine. A steady rally feeds you roughly five balls a minute.</p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="grades-h">
+        <h2 id="grades-h" class="card-title">Honest self-grades</h2>
+        <p class="card-sub">Pick the letter that matches how the shot actually felt today.</p>
+        <div id="gradeGroups"></div>
+      </section>
+
+      <section class="card" aria-labelledby="notes-h">
+        <h2 id="notes-h" class="card-title">Notes</h2>
+        <div class="field">
+          <label for="fNotes" class="sr-only">Session notes</label>
+          <textarea id="fNotes" name="notes" rows="4" maxlength="1000" placeholder="What did you work on? What felt off?"></textarea>
+        </div>
+      </section>
+
+      <p class="form-error" id="formError" role="alert" hidden></p>
+
+      <div class="actions">
+        <button class="btn btn-primary btn-xl" type="submit">Submit Session</button>
+        <button class="btn btn-ghost" type="button" data-go="dashboard">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ================= TOTAL PROGRESS ================= -->
+  <section id="view-progress" class="view" aria-labelledby="prog-h" hidden>
+    <h1 id="prog-h" class="view-title">Total Progress</h1>
+    <p class="view-sub">Everything you have put in, added up.</p>
+
+    <section class="card hero-card" aria-labelledby="balls-h">
+      <h2 id="balls-h" class="card-title">Total balls hit</h2>
+      <p class="hero-number" id="pBalls">0</p>
+      <p class="hero-sub" id="pBallsSub">Across 0 sessions and 0 hours on court.</p>
+    </section>
+
+    <section class="card" aria-labelledby="mech-h">
+      <h2 id="mech-h" class="card-title">Mechanics report card</h2>
+      <p class="card-sub">Weighted by session length, with recent sessions counting most.</p>
+      <div class="report" id="reportCard"></div>
+    </section>
+
+    <section class="card" aria-labelledby="odds-h">
+      <h2 id="odds-h" class="card-title">Odds of going pro</h2>
+      <div class="odds">
+        <div class="odds-dial">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="dial-track" cx="60" cy="60" r="52"/>
+            <circle class="dial-fill" id="dialFill" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="odds-readout">
+            <span class="odds-value" id="oddsValue">0%</span>
+            <span class="odds-caption" id="oddsCaption">Not started</span>
+          </div>
+        </div>
+        <ul class="factors" id="oddsFactors"></ul>
+      </div>
+      <p class="disclaimer">A motivational model built from your own logs, not a scouting report. Real professional odds are far longer than any app can promise.</p>
+    </section>
+
+    <section class="card" aria-labelledby="logbook-h">
+      <div class="card-head">
+        <h2 id="logbook-h" class="card-title">Session log</h2>
+        <span class="pill" id="logCount">0</span>
+      </div>
+      <ol class="log" id="logList"></ol>
+    </section>
+
+    <section class="card danger-card" aria-labelledby="danger-h">
+      <h2 id="danger-h" class="card-title">Danger zone</h2>
+      <p class="card-sub">Wiping your career deletes every session on this device permanently. There is no undo and no backup.</p>
+      <button class="btn btn-danger" type="button" id="wipeBtn">Wipe Career</button>
+    </section>
+  </section>
+
+</main>
+
+<nav class="tabbar" aria-label="Main menu">
+  <button class="tab" type="button" data-go="dashboard" aria-current="page">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg>
+    <span>Dashboard</span>
+  </button>
+  <button class="tab" type="button" data-go="log">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    <span>Log Session</span>
+  </button>
+  <button class="tab" type="button" data-go="progress">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6"/><path d="M12 20V8"/><path d="M17 20v-9"/></svg>
+    <span>Total Progress</span>
+  </button>
+</nav>
+
+<!-- ================= WIPE MODAL ================= -->
+<div class="modal-scrim" id="wipeModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="wipeTitle">
+    <p class="modal-step" id="wipeStep">Step 1 of 3</p>
+    <h2 class="modal-title" id="wipeTitle">Wipe your entire career?</h2>
+    <div class="modal-body" id="wipeBody"></div>
+    <div class="field" id="wipeTypeField" hidden>
+      <label for="wipeInput">Type <b>WIPE CAREER</b> exactly to confirm</label>
+      <input type="text" id="wipeInput" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="WIPE CAREER">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" id="wipeCancel">Keep my data</button>
+      <button class="btn btn-danger" type="button" id="wipeNext">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
