@@ -2,7 +2,6 @@
   "name": "Baseline CourtLog",
   "short_name": "CourtLog",
   "description": "Log tennis training sessions, track balls hit, grade your mechanics, and watch your career progress.",
-  "id": "/",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -1,7 +1,7 @@
 /* Offline cache for Baseline CourtLog.
    Bump CACHE when you ship a change, so phones pick up the new files. */
 
-var CACHE = 'courtlog-v3';
+var CACHE = 'courtlog-v4';
 
 var ASSETS = [
   './',

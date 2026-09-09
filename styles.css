@@ -146,7 +146,12 @@ html {
 
 body {
   margin: 0;
-  min-height: 100%;
+  /* Column layout keeps the tab bar at the bottom when a screen is short,
+     while sticky handles the case where content overflows. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--font);
   font-size: 16px;
   line-height: 1.5;
@@ -221,12 +226,14 @@ button, input, textarea { font: inherit; color: inherit; }
    Layout
    ============================================================ */
 
-/* Bottom padding lives on the scrolling content, not on body, so the
-   final card clears the fixed tab bar. */
+/* The tab bar is in normal flow below this, so no clearance padding is
+   needed here any more. */
 main {
+  width: 100%;
   max-width: 720px;
   margin: 0 auto;
-  padding: 22px 18px calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom));
+  padding: 22px 18px 24px;
+  flex: 1 0 auto;
 }
 
 .view { animation: rise .28s ease both; }
@@ -596,6 +603,14 @@ input.invalid { border-color: var(--danger); }
 .danger-card .card-title { color: var(--danger); }
 .danger-card .btn-danger { margin-top: 16px; width: 100%; }
 
+.build {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-3);
+  letter-spacing: .03em;
+}
+
 /* ============================================================
    Recorder
    ============================================================ */
@@ -901,8 +916,12 @@ input.invalid { border-color: var(--danger); }
    Tab bar
    ============================================================ */
 
+/* Sticky, not fixed. Fixed positioning needs the page's own bottom padding
+   to compensate, and that breaks wherever the page is embedded in a frame
+   sized to its content. Sticky sits in normal flow, so the last card can
+   always be scrolled to. */
 .tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  position: sticky; bottom: 0; z-index: 30;
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 2px;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
@@ -975,7 +994,7 @@ input.invalid { border-color: var(--danger); }
 .toast {
   position: fixed; z-index: 60;
   left: 50%; transform: translateX(-50%);
-  bottom: calc(var(--tabbar-h) + 18px + env(safe-area-inset-bottom));
+  bottom: calc(var(--tabbar-h) + 14px + env(safe-area-inset-bottom));
   background: var(--text);
   color: var(--bg);
   padding: 11px 18px;

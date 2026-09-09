@@ -10,6 +10,10 @@
 
   /* ---------- constants ---------- */
 
+  /* Bump on every change that ships. Shown on the dashboard so a bug report
+     can say which build it came from. */
+  var BUILD = 'build 7 · 8 Sep 2026';
+
   var STORE_KEY = 'baseline-courtlog:v1';
   var THEME_KEY = 'baseline-courtlog:theme';
 
@@ -318,12 +322,22 @@
   var VIEWS = ['dashboard', 'log', 'record', 'shots', 'progress'];
   var currentView = 'dashboard';
 
+  /* Surface a broken screen instead of failing silently, so a bug report
+     can say which part gave up. */
+  function report(where, err) {
+    if (window.console && console.error) console.error('[CourtLog] ' + where, err);
+    toast('Something went wrong loading ' + where + '. The rest still works.');
+  }
+
   function go(view) {
     if (VIEWS.indexOf(view) === -1) view = 'dashboard';
     currentView = view;
 
+    /* Never let a missing section throw partway through and strand the user
+       on whatever screen happened to be showing. */
     VIEWS.forEach(function (v) {
-      $('view-' + v).hidden = (v !== view);
+      var node = $('view-' + v);
+      if (node) node.hidden = (v !== view);
     });
 
     var tabs = document.querySelectorAll('.tab');
@@ -332,10 +346,11 @@
       else tabs[i].removeAttribute('aria-current');
     }
 
-    if (view === 'dashboard') renderDashboard();
-    if (view === 'progress') renderProgress();
-    if (window.CourtLogClips) window.CourtLogClips.onViewChange(view);
-    if (window.CourtLogReview) window.CourtLogReview.onViewChange(view);
+    /* A failure inside any one of these must not undo the navigation. */
+    try { if (view === 'dashboard') renderDashboard(); } catch (e) { report('dashboard', e); }
+    try { if (view === 'progress') renderProgress(); } catch (e) { report('progress', e); }
+    try { if (window.CourtLogClips) window.CourtLogClips.onViewChange(view); } catch (e) { report('clips', e); }
+    try { if (window.CourtLogReview) window.CourtLogReview.onViewChange(view); } catch (e) { report('review', e); }
 
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
@@ -863,6 +878,8 @@
 
   function init() {
     window.CourtLogToast = toast;
+    var stamp = $('buildStamp');
+    if (stamp) stamp.textContent = 'Baseline CourtLog · ' + BUILD;
     applyTheme(currentTheme());
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
       if (currentTheme() === 'system') applyTheme('system');
