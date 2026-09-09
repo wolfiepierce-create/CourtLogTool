@@ -315,7 +315,7 @@
 
   /* ---------- routing ---------- */
 
-  var VIEWS = ['dashboard', 'log', 'progress'];
+  var VIEWS = ['dashboard', 'log', 'record', 'shots', 'progress'];
   var currentView = 'dashboard';
 
   function go(view) {
@@ -334,6 +334,8 @@
 
     if (view === 'dashboard') renderDashboard();
     if (view === 'progress') renderProgress();
+    if (window.CourtLogClips) window.CourtLogClips.onViewChange(view);
+    if (window.CourtLogReview) window.CourtLogReview.onViewChange(view);
 
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
   }
@@ -479,6 +481,17 @@
 
     resetForm();
     go('progress');
+
+    if (pendingClipId && window.CourtLogClips) {
+      var clipId = pendingClipId;
+      pendingClipId = null;
+      window.CourtLogClips.setSession(clipId, entry.id).then(function () {
+        toast('Session logged and the clip is attached.');
+        startReview(clipId);
+      });
+      return;
+    }
+
     toast('Session logged. ' + nf.format(balls) + ' more balls in the bank.');
   }
 
@@ -560,8 +573,10 @@
         }
         sessions = sessions.filter(function (x) { return x.id !== s.id; });
         save(sessions);
+        /* Keep the footage, just drop the link to a session that no longer exists. */
+        if (window.CourtLogClips) window.CourtLogClips.unlinkSession(s.id);
         renderProgress();
-        toast('Session deleted.');
+        toast('Session deleted. Any clip stays in your library.');
       });
       li.appendChild(del);
     }
@@ -639,23 +654,128 @@
     if (!st.count) {
       list.appendChild(emptyState('Nothing logged yet. Add a training session and it will show up here.'));
     } else {
-      byNewest(sessions).forEach(function (s) { list.appendChild(entryNode(s, true)); });
+      byNewest(sessions).forEach(function (s) {
+        var node = entryNode(s, true);
+        node.dataset.session = s.id;
+        list.appendChild(node);
+      });
+      decorateWithClips();
     }
+  }
+
+  /* Clip counts arrive from IndexedDB, so they land a beat after the log renders. */
+  function decorateWithClips() {
+    if (!window.CourtLogClips) return;
+    window.CourtLogClips.countsBySession().then(function (map) {
+      Object.keys(map).forEach(function (sessionId) {
+        var node = document.querySelector('.entry[data-session="' + sessionId + '"]');
+        if (!node || node.querySelector('.entry-clips')) return;
+        var n = map[sessionId];
+        var tag = el('span', 'entry-clips', n + ' clip' + (n === 1 ? '' : 's'));
+        node.querySelector('.entry-top').appendChild(tag);
+      });
+    });
+  }
+
+  /* ---------- linking clips to sessions ---------- */
+
+  var pendingClipId = null;   // set when you choose to log a session for a fresh clip
+  var linkClip = null;
+
+  function handleClipSaved(clip) {
+    linkClip = clip;
+
+    var mins = Math.round(clip.durationMs / 1000);
+    $('linkMeta').textContent = 'A ' + (mins < 60 ? mins + ' second' : Math.round(mins / 60) + ' minute') +
+      ' clip from ' + prettyDate(clip.date).toLowerCase() +
+      '. Linking it means you can jump to the footage from your session log.';
+
+    var sameDay = sessions.filter(function (s) { return s.date === clip.date; });
+    var list = $('linkList');
+    list.textContent = '';
+
+    sameDay.forEach(function (s) {
+      var li = el('li');
+      var b = el('button', 'linkrow');
+      b.type = 'button';
+      b.appendChild(el('span', 'linkrow-main',
+        prettyDuration(s.minutes) + ' · ' + nf.format(s.balls) + ' balls'));
+      b.appendChild(el('span', 'linkrow-sub', MECHANICS.map(function (m) {
+        return m.name.slice(0, 2) + ' ' + s.grades[m.key];
+      }).join('  ')));
+      b.addEventListener('click', function () { attachTo(s.id); });
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+
+    if (!sameDay.length) {
+      var li2 = el('li');
+      li2.appendChild(el('div', 'empty', 'No session logged for this date yet.'));
+      list.appendChild(li2);
+    }
+
+    $('linkModal').hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLink() {
+    $('linkModal').hidden = true;
+    document.body.style.overflow = '';
+    linkClip = null;
+  }
+
+  function startReview(clipId) {
+    if (window.CourtLogReview) window.CourtLogReview.open(clipId, go);
+  }
+
+  function attachTo(sessionId) {
+    if (!linkClip || !window.CourtLogClips) return closeLink();
+    var id = linkClip.id;
+    closeLink();
+    window.CourtLogClips.setSession(id, sessionId).then(function () {
+      toast('Clip attached to that session.');
+      startReview(id);
+    });
+  }
+
+  function skipLink() {
+    var id = linkClip ? linkClip.id : null;
+    closeLink();
+    if (id) startReview(id);
+  }
+
+  function logSessionForClip() {
+    if (!linkClip) return closeLink();
+    pendingClipId = linkClip.id;
+    var date = linkClip.date;
+    closeLink();
+    resetForm();
+    $('fDate').value = date;
+    go('log');
+    toast('Log the session and the clip attaches itself.');
   }
 
   /* ---------- wipe career: three separate confirmations ---------- */
 
   var wipeStep = 0;
+  var wipeClips = 0;
 
   function openWipe() {
-    if (!sessions.length) {
-      toast('Nothing to wipe. Your career is already empty.');
-      return;
-    }
-    wipeStep = 1;
-    $('wipeModal').hidden = false;
-    document.body.style.overflow = 'hidden';
-    renderWipe();
+    var pending = window.CourtLogClips
+      ? window.CourtLogClips.count()
+      : Promise.resolve(0);
+
+    pending.then(function (n) {
+      wipeClips = n;
+      if (!sessions.length && !wipeClips) {
+        toast('Nothing to wipe. Your career is already empty.');
+        return;
+      }
+      wipeStep = 1;
+      $('wipeModal').hidden = false;
+      document.body.style.overflow = 'hidden';
+      renderWipe();
+    });
   }
 
   function closeWipe() {
@@ -679,12 +799,18 @@
     if (wipeStep === 1) {
       $('wipeTitle').textContent = 'Wipe your entire career?';
       body.appendChild(el('p', null,
-        'This clears every training session stored on this device and resets all of your grades and statistics to zero.'));
+        'This clears every training session and recorded clip stored on this device, and resets all of your grades and statistics to zero.'));
       var ul = el('ul');
       ul.appendChild(el('li', null, nf.format(st.count) + ' logged session' + (st.count === 1 ? '' : 's')));
       ul.appendChild(el('li', null, nf.format(st.balls) + ' balls hit'));
       ul.appendChild(el('li', null, st.hours.toFixed(1) + ' hours on court'));
-      ul.appendChild(el('li', null, 'History going back to ' + softDate(st.firstDate)));
+      if (wipeClips) {
+        ul.appendChild(el('li', null, nf.format(wipeClips) + ' recorded clip' +
+          (wipeClips === 1 ? '' : 's') + ', with every line call marked on them'));
+      }
+      if (st.firstDate) {
+        ul.appendChild(el('li', null, 'History going back to ' + softDate(st.firstDate)));
+      }
       body.appendChild(ul);
       $('wipeNext').textContent = 'Continue';
       $('wipeCancel').textContent = 'Keep my data';
@@ -694,7 +820,7 @@
       body.appendChild(el('p', null,
         'Baseline CourtLog keeps your data on this device only. There is no cloud copy, no backup and no restore.'));
       var p2 = el('p', null, 'Once you wipe, ');
-      p2.appendChild(el('strong', null, 'every session is gone for good'));
+      p2.appendChild(el('strong', null, 'every session and every clip is gone for good'));
       p2.appendChild(document.createTextNode(' and your odds of going pro return to zero.'));
       body.appendChild(p2);
       $('wipeNext').textContent = 'I understand, continue';
@@ -721,14 +847,22 @@
 
     sessions = [];
     try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
+
+    var clipsGone = window.CourtLogClips
+      ? window.CourtLogClips.clearAll()
+      : Promise.resolve();
+
     closeWipe();
-    go('dashboard');
-    toast('Career wiped. Clean slate.');
+    clipsGone.then(function () {
+      go('dashboard');
+      toast('Career wiped. Clean slate.');
+    });
   }
 
   /* ---------- wiring ---------- */
 
   function init() {
+    window.CourtLogToast = toast;
     applyTheme(currentTheme());
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
       if (currentTheme() === 'system') applyTheme('system');
@@ -777,6 +911,20 @@
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape' && !$('wipeModal').hidden) closeWipe();
     });
+
+    $('linkSkip').addEventListener('click', skipLink);
+    $('linkNew').addEventListener('click', logSessionForClip);
+    $('linkModal').addEventListener('click', function (ev) {
+      if (ev.target === this) skipLink();
+    });
+
+    if (window.CourtLogReview) window.CourtLogReview.init(go);
+
+    if (window.CourtLogClips) {
+      window.CourtLogClips.onClipSaved = handleClipSaved;
+      window.CourtLogClips.onAnalyse = startReview;
+      window.CourtLogClips.init();
+    }
 
     go('dashboard');
 

@@ -1,13 +1,16 @@
 /* Offline cache for Baseline CourtLog.
    Bump CACHE when you ship a change, so phones pick up the new files. */
 
-var CACHE = 'courtlog-v1';
+var CACHE = 'courtlog-v3';
 
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './clips.js',
+  './analysis.js',
+  './review.js',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

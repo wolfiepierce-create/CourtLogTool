@@ -141,6 +141,109 @@
     </form>
   </section>
 
+  <!-- ================= RECORD ================= -->
+  <section id="view-record" class="view" aria-labelledby="rec-h" hidden>
+    <h1 id="rec-h" class="view-title">Record</h1>
+    <p class="view-sub">Capture a rally, mark the calls as they happen, review it after.</p>
+
+    <section class="card cam-card" aria-labelledby="cam-h">
+      <h2 id="cam-h" class="sr-only">Camera</h2>
+
+      <div class="stage">
+        <video id="camPreview" playsinline muted autoplay></video>
+        <div class="stage-empty" id="camEmpty">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5h11v9H3z"/><path d="M14 11l7-3.5v9L14 13"/></svg>
+          <p>Camera off</p>
+          <p class="hint">Prop the phone at the side of the court, about level with the net.</p>
+        </div>
+        <div class="rec-badge" id="recBadge" hidden>
+          <span class="rec-dot"></span><span id="recTime">0:00</span>
+        </div>
+      </div>
+
+      <div class="cam-controls">
+        <button class="btn btn-primary" id="camStart" type="button">Turn camera on</button>
+        <button class="btn btn-record" id="recToggle" type="button" hidden>Start recording</button>
+        <button class="btn btn-ghost" id="camFlip" type="button" hidden>Flip camera</button>
+        <button class="btn btn-ghost" id="camStop" type="button" hidden>Turn camera off</button>
+      </div>
+
+      <p class="form-error" id="camError" role="alert" hidden></p>
+    </section>
+
+    <section class="card" aria-labelledby="calls-h">
+      <h2 id="calls-h" class="card-title">Line calls</h2>
+      <p class="card-sub">Tap as the ball lands. Each tap stores a timestamp you can jump straight back to.</p>
+      <div class="callpad">
+        <button class="call call-in" id="callIn" type="button" disabled>In</button>
+        <button class="call call-out" id="callOut" type="button" disabled>Out</button>
+        <button class="call call-note" id="callNote" type="button" disabled>Mark</button>
+      </div>
+      <p class="tally" id="callTally">Start recording to mark calls.</p>
+    </section>
+
+    <section class="card" aria-labelledby="lib-h">
+      <div class="card-head">
+        <h2 id="lib-h" class="card-title">Saved clips</h2>
+        <span class="pill" id="clipCount">0</span>
+      </div>
+      <p class="storage-line" id="storageLine"></p>
+      <ol class="cliplist" id="clipList"></ol>
+    </section>
+  </section>
+
+  <!-- ================= SHOT ANALYSIS ================= -->
+  <section id="view-shots" class="view" aria-labelledby="shots-h" hidden>
+    <h1 id="shots-h" class="view-title">Shot breakdown</h1>
+    <p class="view-sub" id="shotsSub">Watch it back and mark each shot in or out.</p>
+
+    <section class="card" id="analysisCard" aria-labelledby="an-h">
+      <h2 id="an-h" class="card-title">Analysing</h2>
+      <p class="card-sub" id="anNote">Getting started</p>
+      <div class="progress"><div class="progress-fill" id="anBar"></div></div>
+      <p class="hint" id="anHint">This runs entirely on your phone, so it takes a moment. Roughly thirty to ninety seconds for a minute of footage.</p>
+      <div class="actions">
+        <button class="btn btn-ghost" type="button" id="anCancel">Stop and go back</button>
+      </div>
+    </section>
+
+    <section class="card" id="shotsPlayerCard" hidden aria-labelledby="sp-h">
+      <h2 id="sp-h" class="sr-only">Clip</h2>
+      <video id="shotsVideo" class="clip-video" controls playsinline></video>
+      <p class="hint" id="shotsHint">Tap a timestamp to jump to that shot, then call it.</p>
+    </section>
+
+    <section class="card" id="shotsSummary" hidden aria-labelledby="sum-h">
+      <h2 id="sum-h" class="card-title">Consistency</h2>
+      <div class="bigstats">
+        <div class="bigstat">
+          <span class="bigstat-label">All shots in</span>
+          <span class="bigstat-value" id="sumOverall">—</span>
+        </div>
+        <div class="bigstat">
+          <span class="bigstat-label">Serves in</span>
+          <span class="bigstat-value" id="sumServe">—</span>
+        </div>
+      </div>
+      <p class="hint" id="sumUnmarked"></p>
+      <div class="report" id="shotTable"></div>
+    </section>
+
+    <section class="card" id="shotsListCard" hidden aria-labelledby="sl-h">
+      <div class="card-head">
+        <h2 id="sl-h" class="card-title">Every shot detected</h2>
+        <span class="pill" id="shotsCount">0</span>
+      </div>
+      <p class="card-sub">Wrong label? Change it and the model learns your strokes.</p>
+      <ol class="shotlist" id="shotList"></ol>
+    </section>
+
+    <div class="actions" id="shotsActions" hidden>
+      <button class="btn btn-primary" type="button" id="shotsDone">Save and go to Progress</button>
+      <button class="btn btn-ghost" type="button" data-go="record">Back to Record</button>
+    </div>
+  </section>
+
   <!-- ================= TOTAL PROGRESS ================= -->
   <section id="view-progress" class="view" aria-labelledby="prog-h" hidden>
     <h1 id="prog-h" class="view-title">Total Progress</h1>
@@ -202,9 +305,13 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
     <span>Log Session</span>
   </button>
+  <button class="tab" type="button" data-go="record">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5h11v9H3z"/><path d="M14 11l7-3.5v9L14 13"/></svg>
+    <span>Record</span>
+  </button>
   <button class="tab" type="button" data-go="progress">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6"/><path d="M12 20V8"/><path d="M17 20v-9"/></svg>
-    <span>Total Progress</span>
+    <span>Progress</span>
   </button>
 </nav>
 
@@ -225,8 +332,40 @@
   </div>
 </div>
 
+<!-- ================= LINK CLIP TO SESSION ================= -->
+<div class="modal-scrim" id="linkModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="linkTitle">
+    <p class="modal-step ok">Clip saved</p>
+    <h2 class="modal-title" id="linkTitle">Add this to a training session?</h2>
+    <p class="modal-body" id="linkMeta"></p>
+    <ol class="linklist" id="linkList"></ol>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" id="linkSkip">Not now</button>
+      <button class="btn btn-primary" type="button" id="linkNew">Log a new session</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CLIP REVIEW ================= -->
+<div class="modal-scrim" id="clipModal" hidden>
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="clipTitle">
+    <h2 class="modal-title" id="clipTitle">Clip</h2>
+    <p class="modal-step" id="clipMeta"></p>
+    <video id="clipVideo" class="clip-video" controls playsinline></video>
+    <div class="marks" id="clipMarks"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" type="button" id="clipAnalyse">Shot breakdown</button>
+      <button class="btn btn-ghost" type="button" id="clipClose">Close</button>
+      <button class="btn btn-danger" type="button" id="clipDelete">Delete clip</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
+<script src="analysis.js"></script>
+<script src="clips.js"></script>
+<script src="review.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
